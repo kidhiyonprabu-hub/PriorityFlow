@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriorityFlow AI</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230d1325'/%3E%3Cpath d='M16 17h18l-6 10h10l-18 20 4-14H16l8-16zm18 0h12v6H34v-6zm0 12h12v6H34v-6zm0 12h12v6H34v-6z' fill='%239b8cff'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
+</head>
+<body>
+    <aside class="sidebar">
+        <h2>✦ PriorityFlow</h2>
+        <p class="muted">TASK WORKSPACE</p>
+        <button class="nav active" data-page="dashboard">Dashboard</button>
+        <button class="nav" data-page="tasks">My Tasks</button>
+        <button class="nav" data-page="queue">Priority Queue</button>
+        <button class="nav" data-page="algorithms">Algorithm Lab</button>
+        <button class="nav" data-page="graph">Dependency Graph</button>
+        <div class="sidebar-bottom">
+            <div>MICRO PROJECT 12</div>
+            <div>CO3 · CO4 · CO5</div>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <div>
+                <p class="muted">PROJECT MANAGEMENT / WORKSPACE</p>
+                <h1 id="page-title">Dashboard Overview</h1>
+            </div>
+            <span class="live">● SYSTEM ONLINE</span>
+        </header>
+
+        <section class="stats">
+            <div class="stat"><p>Total Tasks</p><h2 id="total">0</h2><span>All projects in queue</span></div>
+            <div class="stat"><p>Pending</p><h2 id="pending">0</h2><span>Ready to start</span></div>
+            <div class="stat"><p>In Progress</p><h2 id="progress">0</h2><span>Active work items</span></div>
+            <div class="stat"><p>Completed</p><h2 id="completed">0</h2><span>Finished this cycle</span></div>
+            <div class="stat"><p>Overdue</p><h2 id="overdue">0</h2><span>Open tasks past deadline</span></div>
+            <div class="stat"><p>Completion rate</p><h2 id="completion-rate">0%</h2><span>Completed of all tasks</span></div>
+        </section>
+
+        <section class="panel hidden" data-page-view="tasks">
+            <div class="panel-heading">
+                <div>
+                    <p class="muted">MANAGE PRIORITIES</p>
+                    <h2>Task Pipeline</h2>
+                </div>
+                <button id="add-toggle" class="primary">+ Quick Add</button>
+            </div>
+
+            <form id="task-form" class="task-form hidden">
+                <input type="hidden" id="task-id" name="task_id">
+                <input name="title" placeholder="Task title" required>
+                <input name="description" placeholder="Optional description">
+                <select name="priority">
+                    <option>Critical</option>
+                    <option>High</option>
+                    <option selected>Medium</option>
+                    <option>Low</option>
+                </select>
+                <select name="status">
+                    <option>Pending</option>
+                    <option>In Progress</option>
+                    <option>Completed</option>
+                </select>
+                <input type="date" name="deadline" aria-label="Deadline">
+                <input name="category" placeholder="Category">
+                <input type="number" name="estimated_duration" min="0" placeholder="Est. hours">
+                <button type="submit" class="primary">Save Task</button>
+            </form>
+
+            <div class="toolbar">
+                <input id="search" type="search" placeholder="Search task title or description...">
+                <select id="filter">
+                    <option value="">All priorities</option>
+                    <option>Critical</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                </select>
+                <select id="status-filter" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option>Pending</option>
+                    <option>In Progress</option>
+                    <option>Completed</option>
+                </select>
+                <select id="deadline-filter" aria-label="Filter by deadline">
+                    <option value="">Any deadline</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="none">No deadline</option>
+                </select>
+                <select id="sort">
+                    <option value="priority">Sort by priority</option>
+                    <option value="title">Sort by title</option>
+                    <option value="deadline">Sort by deadline</option>
+                    <option value="effort">Sort by estimated hours</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Deadline</th>
+                            <th>Category</th>
+                            <th>Hours</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-list"></tbody>
+                </table>
+            </div>
+
+            <div id="empty" class="empty hidden">No tasks found for the current filters.</div>
+        </section>
+
+        <section class="panel" data-page-view="dashboard">
+            <div class="panel-heading">
+                <div>
+                    <p class="muted">RECOMMENDATION</p>
+                    <h2>Next up</h2>
+                </div>
+            </div>
+            <div id="next-task">No pending tasks</div>
+            <div class="dashboard-actions">
+                <button id="open-tasks" class="primary">Open task list</button>
+                <button id="dashboard-add" class="action-btn">+ Create a task</button>
+            </div>
+            <div class="panel-heading insight-heading">
+                <div>
+                    <p class="muted">YOUR REAL WORKLOAD</p>
+                    <h2>Priority distribution</h2>
+                </div>
+            </div>
+            <div id="priority-bars" class="priority-bars"></div>
+            <div class="dashboard-columns">
+                <div>
+                    <p class="muted">COMPLETED IN LAST 7 DAYS</p>
+                    <div id="weekly-chart" class="weekly-chart"></div>
+                </div>
+                <div>
+                    <p class="muted">UPCOMING DEADLINES</p>
+                    <div id="upcoming-deadlines" class="upcoming-list"></div>
+                </div>
+            </div>
+            <button id="sample-data" class="action-btn">Load demo workspace · 70 tasks</button>
+            <p class="task-desc">Adds realistic example records up to 70 total. Your existing tasks are kept.</p>
+        </section>
+
+        <section class="panel feature-page hidden" data-page-view="queue">
+            <div class="panel-heading">
+                <div><p class="muted">CO4 · BINARY MAX HEAP</p><h2>Priority Queue Visualizer</h2></div>
+                <div class="queue-actions">
+                    <select id="heap-insert-task" aria-label="Select task to insert"></select>
+                    <button id="heap-insert" class="action-btn">Insert task</button>
+                    <button id="heap-build" class="primary">Build from tasks</button>
+                    <button id="heap-extract" class="action-btn">Extract max</button>
+                    <button id="heap-reset" class="action-btn">Reset</button>
+                </div>
+            </div>
+            <p class="task-desc">Heap order is not a sorted array. Higher priority wins; ties use the earlier deadline, then creation time. Insert O(log n) · Extract O(log n) · Build heap O(n).</p>
+            <div class="heap-top">
+                <div class="heap-peak"><span class="muted">PEEK · O(1)</span><strong id="heap-peak">Build a heap to begin</strong></div>
+                <div id="heap-step-label" class="task-desc">Insert · extract · sift-up · sift-down are shown as real heap states.</div>
+            </div>
+            <div id="heap-tree" class="heap-tree" aria-live="polite"></div>
+            <div class="table-wrap"><div id="heap-array" class="heap-array"></div></div>
+            <div class="step-actions">
+                <button id="heap-prev" class="action-btn">← Previous</button>
+                <span id="heap-step-count" class="task-desc">0 / 0</span>
+                <button id="heap-next" class="action-btn">Next →</button>
+            </div>
+        </section>
+
+        <section class="panel feature-page hidden" data-page-view="algorithms">
+            <div class="panel-heading">
+                <div><p class="muted">CO3 · SEARCH & SORT</p><h2>Algorithm Lab</h2></div>
+            </div>
+            <div class="algorithm-controls">
+                <label>Operation
+                    <select id="lab-operation"><option value="search">Search</option><option value="sort">Sort</option></select>
+                </label>
+                <label>Algorithm
+                    <select id="lab-algorithm"><option value="linear">Linear Search</option><option value="binary">Binary Search</option></select>
+                </label>
+                <label>Data field
+                    <select id="lab-field"><option value="priority">Priority</option><option value="title">Title</option><option value="deadline">Deadline</option><option value="estimated_duration">Estimated hours</option></select>
+                </label>
+                <label id="lab-target-wrap">Find value
+                    <input id="lab-target" placeholder="Enter a title or priority">
+                </label>
+                <label>Speed
+                    <select id="lab-speed"><option value="1000">Slow</option><option value="500" selected>Normal</option><option value="180">Fast</option></select>
+                </label>
+            </div>
+            <div class="algorithm-actions">
+                <button id="lab-run" class="primary">Prepare algorithm</button>
+                <button id="lab-play" class="action-btn">Play</button>
+                <button id="lab-pause" class="action-btn">Pause</button>
+                <button id="lab-step" class="action-btn">Next step</button>
+                <button id="lab-reset" class="action-btn">Reset</button>
+            </div>
+            <p id="lab-explanation" class="task-desc">Select an algorithm and use your actual saved tasks as the dataset.</p>
+            <div id="lab-status" class="lab-status">Ready when you are.</div>
+            <div id="lab-values" class="lab-values" aria-live="polite"></div>
+            <div class="complexity-row">
+                <div><span class="muted">COMPARISONS</span><strong id="lab-comparisons">0</strong></div>
+                <div><span class="muted">SWAPS / WRITES</span><strong id="lab-swaps">0</strong></div>
+                <div><span class="muted">COMPLEXITY</span><strong id="lab-complexity">—</strong></div>
+            </div>
+        </section>
+
+        <section class="panel feature-page hidden" data-page-view="graph">
+            <div class="panel-heading">
+                <div><p class="muted">CO5 · DIRECTED ACYCLIC GRAPH</p><h2>Dependency Map</h2></div>
+                <span id="graph-summary" class="task-desc">Loading dependency graph…</span>
+            </div>
+            <div class="graph-controls">
+                <label>Task depends on
+                    <select id="graph-task"></select>
+                </label>
+                <label>Prerequisite
+                    <select id="graph-dependency"></select>
+                </label>
+                <button id="graph-add" class="primary">Add dependency</button>
+                <label>Start traversal
+                    <select id="graph-start"></select>
+                </label>
+                <button id="graph-bfs" class="action-btn">BFS</button>
+                <button id="graph-dfs" class="action-btn">DFS</button>
+                <button id="graph-topo" class="action-btn">Topological order</button>
+            </div>
+            <div id="graph-status" class="lab-status">Edges point from prerequisite to the task that depends on it.</div>
+            <div class="graph-canvas"><svg id="dependency-svg" viewBox="0 0 960 420" role="img" aria-label="Task dependency graph"></svg></div>
+            <div id="dependency-list" class="dependency-list"></div>
+            <p class="task-desc">BFS / DFS: O(V + E). Topological sorting: O(V + E). A dependency cycle is rejected before it can affect the schedule.</p>
+        </section>
+
+        <footer>PriorityFlow · CO3 Searching & Sorting · CO4 Tree Structures · CO5 Graph Traversal</footer>
+    </main>
+
+    <div id="toast" class="toast"></div>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=5"></script>
+</body>
+</html>
